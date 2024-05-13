@@ -149,9 +149,9 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("SIR Model")
 
 cities = []
-S0 = [500, 300, 300]
-I0 = [30, 0, 0]
-travel_rate = 0.05
+S0 = [50, 283, 300]
+I0 = [5, 5, 5]
+travel_rate = 0.1
 infection_rate = 1
 infection_time = 15
 days = 150
@@ -173,6 +173,8 @@ draw_cities(screen)
 draw_people(screen)
 pygame.display.flip()
 
+fig, axes = plt.subplots()
+
 running = 1
 while running < days:
     for event in pygame.event.get():
@@ -183,12 +185,12 @@ while running < days:
     draw_cities(screen)
     draw_people(screen)
     pygame.display.flip()
+    plt.pause(0.1)
     running += 1
     
-
-fig, axes = plt.subplots(3)
-axes[0].plot([i for i in range(days)], St)
-axes[1].plot([i for i in range(days)], It)
-axes[2].plot([i for i in range(days)], Rt)
-plt.show()
-pygame.quit()
+    axes.set_ylim(bottom=0, top=sum(S0))
+    axes.plot([i for i in range(running)], St[:running], c='g')
+    axes.plot([i for i in range(running)], It[:running], c='r')
+    axes.plot([i for i in range(running)], Rt[:running], c='b')
+    axes.legend()
+    plt.draw()
