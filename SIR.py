@@ -1,29 +1,78 @@
 import pygame
 import random
-import math
-import time
 import matplotlib.pyplot as plt
 
 pygame.init()
 
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
+SCREEN_WIDTH = 1000
+SCREEN_HEIGHT = 1000
 BACKGROUND_COLOR = (0, 0, 0)
-SQUARE_SIZE = 200
-DOT_RADIUS = 3
+SQUARE_SIZE = 300
+DOT_RADIUS = 1
 DOT_COLOR = (0, 0, 0)
 SQUARE_COLOR = (255, 255, 255)
+NEIGHBOURHOOD_SIZE = 2
+
+# -------------------SIMULATION PARAMETERS------------------
+"""
+WOLNA CHOROBA
+---------------
+TRAVEL_RATE = 0.1
+INFECTION_RATE = 0.2
+INFECTION_TIME = 7
+S0 = [1500, 1500, 1500, 4000, 1500]
+I0 = [0, 0, 0, 1, 0]
+DAYS = 200
+"""
+
+"""
+SREDNIA CHOROBA
+---------------
+TRAVEL_RATE = 0.1
+INFECTION_RATE = 0.7
+INFECTION_TIME = 4
+S0 = [1500, 1500, 1500, 4000, 1500]
+I0 = [0, 0, 0, 1, 0]
+DAYS = 50
+"""
+
+"""
+BARDZO SZYBKA CHOROBA
+---------------
+TRAVEL_RATE = 0.1
+INFECTION_RATE = 1
+INFECTION_TIME = 7
+S0 = [1500, 1500, 1500, 4000, 1500]
+I0 = [0, 0, 0, 1, 0]
+DAYS = 50
+"""
+
+TRAVEL_RATE = 0.1
+INFECTION_RATE = 1
+INFECTION_TIME = 7
+S0 = [1500, 1500, 1500, 4000, 1500]
+I0 = [0, 0, 0, 1, 0]
+DAYS = 50
+
+# ----------------------------------------------------------
+
+St, It, Rt = [0 for _ in range(DAYS)], [0 for _ in range(DAYS)], [0 for _ in range(DAYS)]
+St[0] = sum(S0) - sum(I0)
+It[0] = sum(I0)
+Rt[0] = 0
 
 SQUARE_POSITIONS = [
     (50, 50),
-    (260, 260),
-    (470, 60)
+    (350, 350),
+    (650, 650),
+    (50, 650),
+    (650, 50)
 ]
 
 COLORS = [
-    (0, 255, 0),
-    (255, 0, 0),
-    (0, 0, 255)
+    (0, 255, 0), # S
+    (255, 0, 0), # I
+    (0, 0, 255)  # R
 ]
 
 DIRECTIONS = [
@@ -36,6 +85,8 @@ DIRECTIONS = [
     (0, -1),
     (1, -1)
 ]
+
+# ----------------------------------------------------------
 
 class Person:
     """Class representing a singular person"""
@@ -55,31 +106,46 @@ class Person:
         new_y = self.pos[1] + direction[1] * distance
         self.pos = (new_x, new_y)
 
+    def move_inside_new(self):
+        distance = random.randint(10, 50)
+        direction = random.choice([DIRECTIONS[i] for i in range(8) 
+                                   if (self.pos[0] + DIRECTIONS[i][0] * distance < SQUARE_SIZE and self.pos[1] + DIRECTIONS[i][1] * distance < SQUARE_SIZE 
+                                       and self.pos[0] + DIRECTIONS[i][0] * distance > 0 and self.pos[1] + DIRECTIONS[i][1] * distance > 0)])
+        new_x = self.pos[0] + direction[0] * distance
+        new_y = self.pos[1] + direction[1] * distance
+        cities[self.current_square].map[self.pos].remove(self)
+        self.pos = (new_x, new_y)
+        cities[self.current_square].map[self.pos].append(self)
+
     def travel(self, destination):
+        cities[self.current_square].map[self.pos].remove(self)
         self.pos = (random.randint(0, destination.size), random.randint(0, destination.size))
         self.current_square = destination.id
+        cities[self.current_square].map[self.pos].append(self)
 
     def infect(self):
         if self.status == "I":
             for other in self.get_neighbors():
-                if other.status == "S" and random.random() <= infection_rate:
+                if other.status == "S" and random.random() <= INFECTION_RATE:
                     other.status = "I"
                     other.infected_time = 0
                     other.color = COLORS[1]
 
     def remove_check(self):
-        if self.status == "I" and self.infected_time > infection_time:
+        if self.status == "I" and self.infected_time > INFECTION_TIME:
             self.status = "R"
             self.color = COLORS[2]
 
-    # UPDATE THIS IT'S BAD
     def get_neighbors(self):
         neighbors = []
-        for dir in DIRECTIONS:
-            for other in cities[self.current_square].people:
-                for i in range(3):
-                    if other.pos == (self.pos[0] + dir[0] * i, self.pos[1] + dir[1] * i):
-                        neighbors.append(other)
+        neigh_cells = [(x, y) for x in range(self.pos[0] - NEIGHBOURHOOD_SIZE, self.pos[0] + NEIGHBOURHOOD_SIZE + 1) 
+                       for y in range(self.pos[1] - NEIGHBOURHOOD_SIZE, self.pos[1] + NEIGHBOURHOOD_SIZE + 1) 
+                       if x <= cities[self.current_square].size and x >= 0
+                       and y <= cities[self.current_square].size and y >= 0]
+        for cell in neigh_cells:
+            if cities[self.current_square].map[cell] != []:
+                neighbors.extend(cities[self.current_square].map[cell])
+                
         return neighbors
 
 class City:
@@ -88,19 +154,32 @@ class City:
         self.id = id
         self.pos = pos
         self.pop = pop
-        self.people = []
         self.size = size
         self.representation = pygame.Rect(pos[0], pos[1], size, size)
+        self.map = self.create_map()
+        self.people = []
     
+    def calc_people(self):
+        ppl = [val for val in self.map.values() if val != []]
+        self.people = flatten(ppl)
+
+    def create_map(self):
+        city_map = {}
+        for x in range(self.size+1):
+            for y in range(self.size+1):
+                city_map[(x, y)] = []
+        return city_map
+
     def populate(self, S0i):
         for _ in range(S0i):
             person_pos = (random.randint(0, self.size), random.randint(0, self.size))
-            self.people.append(Person(person_pos, self.id))
+            self.map[person_pos].append(Person(person_pos, self.id))
 
 def create_citites():
     for id, pos in enumerate(SQUARE_POSITIONS):
         cities.append(City(id, pos, S0[id], SQUARE_SIZE))
         cities[id].populate(S0[id])
+        cities[id].calc_people()
 
 def draw_cities(screen):
     screen.fill(BACKGROUND_COLOR)
@@ -118,7 +197,7 @@ def update_people(t):
         for person in city.people:
             person.infect()
             person.remove_check()
-            person.move_inside()
+            person.move_inside_new()
             if person.infected_time >= 0:
                 person.infected_time += 1
             if person.status == "S":
@@ -127,10 +206,11 @@ def update_people(t):
                 It[t] += 1
             else:
                 Rt[t] += 1
+        city.calc_people()
 
 def travel():
     for city in cities:
-        people_to_move = int(city.pop * travel_rate)
+        people_to_move = int(city.pop * TRAVEL_RATE)
         
         # CHANGE THIS LATER IT'S BAD
         for _ in range(people_to_move):
@@ -144,22 +224,12 @@ def travel():
             destination.people.append(person)
             city.people.append(replacement)
 
+def flatten(xss):
+    return [x for xs in xss for x in xs]
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("SIR Model")
-
 cities = []
-S0 = [50, 283, 300]
-I0 = [5, 5, 5]
-travel_rate = 0.1
-infection_rate = 1
-infection_time = 15
-days = 150
-St, It, Rt = [0 for i in range(days)], [0 for i in range(days)], [0 for i in range(days)]
-St[0] = sum(S0) - sum(I0)
-It[0] = sum(I0)
-Rt[0] = 0
-
 create_citites()
 for i, I0i in enumerate(I0):
     if I0i > 0:
@@ -176,7 +246,7 @@ pygame.display.flip()
 fig, axes = plt.subplots()
 
 running = 1
-while running < days:
+while running < DAYS:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -194,3 +264,5 @@ while running < days:
     axes.plot([i for i in range(running)], Rt[:running], c='b')
     axes.legend()
     plt.draw()
+
+plt.savefig("wykres.png")
