@@ -1,11 +1,11 @@
 import pygame
 import random
 import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
+import io
 
 pygame.init()
 
-SCREEN_WIDTH = 1000
+SCREEN_WIDTH = 1800
 SCREEN_HEIGHT = 1000
 BACKGROUND_COLOR = (0, 0, 0)
 SQUARE_SIZE = 300
@@ -278,17 +278,31 @@ while running and day < DAYS:
         update_people(day)
         draw_cities(screen)
         draw_people(screen)
-        pygame.display.flip()
+        
         
         axes.clear()
+        fig.patch.set_facecolor('black')
+        axes.set_facecolor('black')
         axes.set_ylim(bottom=0, top=sum(S0))
         axes.plot([i for i in range(day)], St[:day], c='g', label='Susceptible')
         axes.plot([i for i in range(day)], It[:day], c='r', label='Infected')
         axes.plot([i for i in range(day)], Rt[:day], c='b', label='Recovered')
+        axes.tick_params(axis='x', colors='white')
+        axes.tick_params(axis='y', colors='white')
+        axes.spines['bottom'].set_color('white')
+        axes.spines['top'].set_color('white')
+        axes.spines['left'].set_color('white')
+        axes.spines['right'].set_color('white')
+        axes.yaxis.label.set_color('white')
+        axes.xaxis.label.set_color('white')
         axes.legend()
-        plt.pause(0.1)
-        plt.draw()
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        buf.seek(0)
+        image = pygame.image.load(buf)
+        screen.blit(image, (1000, 250))
         
+        pygame.display.flip()
         day += 1
 
 plt.savefig("wykres.png")
