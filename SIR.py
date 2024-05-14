@@ -5,6 +5,7 @@ import matplotlib.colors as mcolors
 
 pygame.init()
 
+# Parametry ekranu
 SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 1000
 BACKGROUND_COLOR = (0, 0, 0)
@@ -55,13 +56,13 @@ S0 = [1500, 1500, 1500, 4000, 1500]
 I0 = [0, 0, 0, 8, 0]
 DAYS = 200
 
-
+# Inicjalizacja list przechowujących liczbę osób w każdym stanie
 St, It, Rt = [0 for _ in range(DAYS)], [0 for _ in range(DAYS)], [0 for _ in range(DAYS)]
 St[0] = sum(S0) - sum(I0)
 It[0] = sum(I0)
 Rt[0] = 0
 
-
+# Pozycje miast
 SQUARE_POSITIONS = [
     (50, 50),
     (350, 350),
@@ -70,14 +71,14 @@ SQUARE_POSITIONS = [
     (650, 50)
 ]
 
-
+# Kolory dla różnych stanów
 COLORS = [
     (0, 255, 0), # S
     (255, 0, 0), # I
     (0, 0, 255)  # R
 ]
 
-
+# Kierunki ruchu
 DIRECTIONS = [
     (1, 0),
     (1, 1),
@@ -89,15 +90,23 @@ DIRECTIONS = [
     (1, -1)
 ]
 
-
+# Klasa reprezentująca osobę
 class Person:
-    """Class representing a singular person"""
     def __init__(self, pos, current_square):
         self.pos = pos
         self.current_square = current_square
         self.status = "S"
         self.color = COLORS[0]
         self.infected_time = -1
+
+    def move_inside(self):
+        distance = random.randint(10, 50)
+        direction = random.choice([DIRECTIONS[i] for i in range(8) 
+                                   if (self.pos[0] + DIRECTIONS[i][0] * distance < SQUARE_SIZE and self.pos[1] + DIRECTIONS[i][1] * distance < SQUARE_SIZE 
+                                       and self.pos[0] + DIRECTIONS[i][0] * distance > 0 and self.pos[1] + DIRECTIONS[i][1] * distance > 0)])
+        new_x = self.pos[0] + direction[0] * distance
+        new_y = self.pos[1] + direction[1] * distance
+        self.pos = (new_x, new_y)
 
     def move_inside_new(self):
         distance = random.randint(10, 50)
@@ -141,9 +150,8 @@ class Person:
                 
         return neighbors
 
-
+# Klasa reprezentująca miasto
 class City:
-    """Class representing a singular city, with its id, position on screen, population, array of Person and size in pixels"""
     def __init__(self, id, pos, pop, size):
         self.id = id
         self.pos = pos
@@ -153,7 +161,7 @@ class City:
         self.map = self.create_map()
         self.people = []
         self.s_count = pop
-        self.i_count = 0 # CHANGE THIS MAYBE
+        self.i_count = 0
         self.r_count = 0
     
     def calc_people(self):
@@ -179,8 +187,8 @@ class City:
 
 def create_cities():
     for id, pos in enumerate(SQUARE_POSITIONS):
-        cities.append(City(id, pos, S0[id] + I0[id], SQUARE_SIZE))
-        cities[id].populate(S0[id] + I0[id])
+        cities.append(City(id, pos, S0[id], SQUARE_SIZE))
+        cities[id].populate(S0[id])
         cities[id].calc_people()
 
 def draw_cities(screen):
@@ -262,27 +270,35 @@ pygame.display.flip()
 fig, axes = plt.subplots()
 
 running = True
+paused = False
 day = 1
 while running and day < DAYS:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                paused = not paused
+            elif event.key == pygame.K_ESCAPE:
+                running = False
 
-    update_people(day)
-    draw_cities(screen)
-    draw_people(screen)
-    pygame.display.flip()
-    
-    axes.clear()
-    axes.set_ylim(bottom=0, top=sum(S0))
-    axes.plot([i for i in range(day)], St[:day], c='g', label='Susceptible')
-    axes.plot([i for i in range(day)], It[:day], c='r', label='Infected')
-    axes.plot([i for i in range(day)], Rt[:day], c='b', label='Recovered')
-    axes.legend()
-    plt.pause(0.1)
-    plt.draw()
-    
-    day += 1
+    if not paused:
+        update_people(day)
+        draw_cities(screen)
+        draw_people(screen)
+        pygame.display.flip()
+        
+        # Aktualizacja wykresu
+        axes.clear()
+        axes.set_ylim(bottom=0, top=sum(S0))
+        axes.plot([i for i in range(day)], St[:day], c='g', label='Susceptible')
+        axes.plot([i for i in range(day)], It[:day], c='r', label='Infected')
+        axes.plot([i for i in range(day)], Rt[:day], c='b', label='Recovered')
+        axes.legend()
+        plt.pause(0.1)
+        plt.draw()
+        
+        day += 1
 
 plt.savefig("wykres.png")
 pygame.quit()
