@@ -2,7 +2,7 @@ import pygame
 import random
 import matplotlib.pyplot as plt
 import io
-from math import sqrt
+from math import sqrt, exp
 
 pygame.init()
 clock = pygame.time.Clock()
@@ -16,18 +16,19 @@ ZOOM_RATIO = 1.2
 
 # ________________________________________________________________________
 
-AVG_POP = 2000
-AVG_SIZE = 375
+AVG_POP = 500
+AVG_SIZE = 150
 MAX_PATIENTS_ZERO = 10
-NEIGHBOURHOOD_SIZE = 2
-N_CITIES = 10
-TRAVEL_RATE = 0.1
-INFECTION_RATE = 0.5
-INFECTION_TIME = 7
+NEIGHBOURHOOD_SIZE = 3
+N_CITIES = 20
+TRAVEL_RATE = 0.12
+INFECTION_RATE = 1
+INFECTION_TIME = 16
 S0 = [random.randint(AVG_POP - AVG_POP//2, AVG_POP + AVG_POP//2) for _ in range(N_CITIES)]
 I0 = [random.randint(0, MAX_PATIENTS_ZERO) for _ in range(N_CITIES)]
+TOTAL_POP = sum(S0) + sum(I0)
 SQUARE_SIZES = [random.randint(AVG_SIZE - AVG_SIZE//2, AVG_SIZE + AVG_SIZE//2) for _ in range(N_CITIES)]
-DAYS = 80
+DAYS = 100
 
 # ________________________________________________________________________
 
@@ -84,7 +85,7 @@ def generate_adjacency_list(positions, sizes, margin=50):
 COLORS = [
     (0, 255, 0),  # S
     (255, 0, 0),  # I
-    (0, 0, 255)  # R
+    (0, 0, 255)   # R
 ]
 
 DIRECTIONS = [
@@ -114,7 +115,7 @@ class Person:
         self.has_travelled = False
 
     def move_inside_new(self):
-        distance = random.randint(10, 50)
+        distance = random.randint(10, 25)
         direction = random.choice([DIRECTIONS[i] for i in range(8)
                                    if (self.pos[0] + DIRECTIONS[i][0] * distance < SQUARE_SIZES[self.current_square] and self.pos[1] + DIRECTIONS[i][1] * distance < SQUARE_SIZES[self.current_square]
                                        and self.pos[0] + DIRECTIONS[i][0] * distance > 0 and self.pos[1] + DIRECTIONS[i][1] * distance > 0)])
@@ -132,12 +133,16 @@ class Person:
         self.has_travelled = True
 
     def infect(self):
+        global beta
         if self.status == "I":
             for other in self.get_neighbors():
-                if other.status == "S" and random.random() <= INFECTION_RATE:
-                    other.status = "I"
-                    other.infected_time = 0
-                    other.color = COLORS[1]
+                if other.status == "S":
+                    distance = sqrt((self.pos[0] - other.pos[0]) ** 2 + (self.pos[1] - other.pos[1]) ** 2)
+                    infection_prob = exp(-3/2 * distance)
+                    if random.random() <= infection_prob * INFECTION_RATE:
+                        other.status = "I"
+                        other.infected_time = 0
+                        other.color = COLORS[1]
 
     def remove_check(self):
         if self.status == "I" and self.infected_time > INFECTION_TIME:
@@ -212,10 +217,9 @@ def draw_cities(screen, ZOOM_LEVEL, offset_x, offset_y):
         scaled_size = city.size * ZOOM_LEVEL
         pygame.draw.rect(screen, color, pygame.Rect(scaled_pos[0] - 10, scaled_pos[1] - 10, scaled_size + 20, scaled_size + 20))
         pygame.draw.rect(screen, 'black', pygame.Rect(scaled_pos[0], scaled_pos[1], scaled_size, scaled_size))
-        draw_text(screen, f"miasto {city.id + 1}", scaled_pos[0] + scaled_size // 2, scaled_pos[1] + scaled_size + 10)
+        draw_text(screen, f"miasto {city.id + 1}", scaled_pos[0] + scaled_size // 2, scaled_pos[1] + scaled_size + 10, size=int(108 * ZOOM_LEVEL/2))
 
-
-def draw_text(screen, text, x, y, color=(255, 255, 255), size = int(36 * ZOOM_LEVEL)):
+def draw_text(screen, text, x, y, size, color=(255, 255, 255)):
     font = pygame.font.Font(None, size)
     text_surface = font.render(text, True, color)
     text_rect = text_surface.get_rect(center=(x, y))
@@ -244,16 +248,18 @@ def update_people(t):
             person.infect()
             person.remove_check()
             person.move_inside_new()
-            if person.infected_time >= 0:
-                person.infected_time += 1
             if person.status == "S":
                 St[t] += 1
             elif person.status == "I":
                 It[t] += 1
+                person.infected_time += 1
             else:
                 Rt[t] += 1
             person.has_travelled = False
+            
+    for city in cities:
         city.calc_people()
+    
 
 
 
@@ -292,7 +298,7 @@ def draw_city_list(screen):
         color = get_color(infected_ratio)
         city_info = f"miasto {city.id + 1} - S: {city.s_count} || I: {city.i_count} || R: {city.r_count}"
         city_list += city_info + '\n'
-        draw_text(screen, city_info, 500 + offset_x, 50 + (city.id * 50) + offset_y, color, 50)
+        draw_text(screen, city_info, 500 + offset_x, 50 + (city.id * 50) + offset_y, 50, color)
 
     return city_list
 
@@ -375,6 +381,7 @@ while running and day < DAYS:
     else:
         city_list = draw_city_list(screen)
 
+    
     axes.clear()
     fig.patch.set_facecolor('black')
     axes.set_facecolor('black')
@@ -398,6 +405,7 @@ while running and day < DAYS:
     screen.blit(image, (1000, 250))
 
     clock.tick(5)
+    draw_text(screen, f"S: {(100.0 * St[day-1] / TOTAL_POP):.2f}%, I: {(100.0 * It[day-1] / TOTAL_POP):.2f}%, R: {(100.0 * Rt[day-1] / TOTAL_POP):.2f}%", 1100, 100, 90)
     pygame.display.flip()
 
         
