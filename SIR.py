@@ -5,7 +5,6 @@ import io
 from math import sqrt, exp
 
 pygame.init()
-clock = pygame.time.Clock()
 
 SCREEN_WIDTH = 1800
 SCREEN_HEIGHT = 1000
@@ -34,7 +33,7 @@ DAYS = 100
 
 
 St, It, Rt = [0 for _ in range(DAYS)], [0 for _ in range(DAYS)], [0 for _ in range(DAYS)]
-St[0] = sum(S0) - sum(I0)
+St[0] = sum(S0)
 It[0] = sum(I0)
 Rt[0] = 0
 
@@ -44,7 +43,7 @@ def generate_square_positions(sizes, start_pos=(50, 50), margin=50):
     max_row_height = 0
 
     for size in sizes:
-        if current_x + size > AVG_SIZE * (sqrt(N_CITIES) + 1):
+        if current_x + size > 1.2 * AVG_SIZE * (sqrt(N_CITIES) + 1):
             current_x = start_pos[0]
             current_y += max_row_height + margin
             max_row_height = 0
@@ -133,7 +132,6 @@ class Person:
         self.has_travelled = True
 
     def infect(self):
-        global beta
         if self.status == "I":
             for other in self.get_neighbors():
                 if other.status == "S":
@@ -321,6 +319,7 @@ running = True
 paused = False
 day = 1
 show_cities = True
+show_stats = False
 city_list = ""
 offset_x = 0
 offset_y = 0
@@ -340,6 +339,8 @@ while running and day < DAYS:
                 show_cities = not show_cities
                 offset_x = 0
                 offset_y = 0
+            elif event.key == pygame.K_s:
+                show_stats = not show_stats
         if show_cities:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
@@ -385,7 +386,7 @@ while running and day < DAYS:
     axes.clear()
     fig.patch.set_facecolor('black')
     axes.set_facecolor('black')
-    axes.set_ylim(bottom=0, top=sum(S0))
+    axes.set_ylim(bottom=0, top=sum(S0)+1)
     axes.plot([i for i in range(day)], St[:day], c='g', label='Susceptible')
     axes.plot([i for i in range(day)], It[:day], c='r', label='Infected')
     axes.plot([i for i in range(day)], Rt[:day], c='b', label='Recovered')
@@ -404,8 +405,8 @@ while running and day < DAYS:
     image = pygame.image.load(buf)
     screen.blit(image, (1000, 250))
 
-    clock.tick(5)
-    draw_text(screen, f"S: {(100.0 * St[day-1] / TOTAL_POP):.2f}%, I: {(100.0 * It[day-1] / TOTAL_POP):.2f}%, R: {(100.0 * Rt[day-1] / TOTAL_POP):.2f}%", 1100, 100, 90)
+    if show_stats:
+        draw_text(screen, f"S: {(100.0 * St[day-1] / TOTAL_POP):.2f}%, I: {(100.0 * It[day-1] / TOTAL_POP):.2f}%, R: {(100.0 * Rt[day-1] / TOTAL_POP):.2f}%", 1100, 100, 90)
     pygame.display.flip()
 
         
