@@ -3,6 +3,7 @@ import random
 import matplotlib.pyplot as plt
 import io
 from math import sqrt, exp
+import csv
 
 def run(AVG_POP, AVG_SIZE, MAX_PATIENTS_ZERO, NEIGHBOURHOOD_SIZE, N_CITIES, TRAVEL_RATE, INFECTION_RATE, INFECTION_TIME, DAYS):
     pygame.init()
@@ -29,6 +30,15 @@ def run(AVG_POP, AVG_SIZE, MAX_PATIENTS_ZERO, NEIGHBOURHOOD_SIZE, N_CITIES, TRAV
     It[0] = sum(I0)
     Rt[0] = 0
 
+    def save_stats():
+        with open('stats.csv', 'w', newline='') as csvfile:
+            fieldnames = ['Day', 'S', 'I', 'R']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+            writer.writeheader()
+            for day in range(DAYS):
+                writer.writerow({'Day': day, 'Susceptible': St[day], 'Infected': It[day], 'Recovered': Rt[day]})
+    
     def generate_square_positions(sizes, start_pos=(50, 50), margin=50):
         positions = []
         current_x, current_y = start_pos
@@ -403,5 +413,6 @@ def run(AVG_POP, AVG_SIZE, MAX_PATIENTS_ZERO, NEIGHBOURHOOD_SIZE, N_CITIES, TRAV
 
             
 
+    save_stats()
     plt.savefig("wykres.png")
     pygame.quit()
