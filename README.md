@@ -7,7 +7,6 @@ We're using SIR agent model to represent people living within cities, moving bet
 
 ## TODO:
 <ul>
-  <li>Add CSV support - Loading from CSV and saving data into CSV</li>
   <li>Add Vaccines/Deaths/Incubation?</li>
   <li>Optimisation (multiprocessing?)</li>
   <li>Better visuals?</li>
