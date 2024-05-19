@@ -4,8 +4,9 @@ import matplotlib.pyplot as plt
 import io
 from math import sqrt, exp
 import csv
+from multiprocessing import Process
 
-def run(AVG_POP, AVG_SIZE, MAX_PATIENTS_ZERO, NEIGHBOURHOOD_SIZE, N_CITIES, TRAVEL_RATE, INFECTION_RATE, INFECTION_TIME, DAYS):
+def run(parameters):
     pygame.init()
 
     SCREEN_WIDTH = 1800
@@ -13,6 +14,16 @@ def run(AVG_POP, AVG_SIZE, MAX_PATIENTS_ZERO, NEIGHBOURHOOD_SIZE, N_CITIES, TRAV
     BACKGROUND_COLOR = (0, 0, 0)
     DOT_RADIUS = 1
     ZOOM_RATIO = 1.2
+
+    AVG_POP = parameters[0]
+    AVG_SIZE = parameters[1]
+    MAX_PATIENTS_ZERO = parameters[2]
+    NEIGHBOURHOOD_SIZE = parameters[3]
+    N_CITIES = parameters[4]
+    TRAVEL_RATE = parameters[5]
+    INFECTION_RATE = parameters[6]
+    INFECTION_TIME = parameters[7]
+    DAYS = parameters[8]
 
 
     # ________________________________________________________________________
@@ -37,7 +48,7 @@ def run(AVG_POP, AVG_SIZE, MAX_PATIENTS_ZERO, NEIGHBOURHOOD_SIZE, N_CITIES, TRAV
 
             writer.writeheader()
             for day in range(DAYS):
-                writer.writerow({'Day': day, 'Susceptible': St[day], 'Infected': It[day], 'Recovered': Rt[day]})
+                writer.writerow({'Day': day, 'S': St[day], 'I': It[day], 'R': Rt[day]})
     
     def generate_square_positions(sizes, start_pos=(50, 50), margin=50):
         positions = []
@@ -226,7 +237,6 @@ def run(AVG_POP, AVG_SIZE, MAX_PATIENTS_ZERO, NEIGHBOURHOOD_SIZE, N_CITIES, TRAV
         screen.blit(text_surface, text_rect)
 
 
-
     def get_color(infected_ratio):
         cmap = plt.get_cmap("RdYlGn_r")
         return [int(255 * c) for c in cmap(infected_ratio)[:3]]
@@ -240,7 +250,7 @@ def run(AVG_POP, AVG_SIZE, MAX_PATIENTS_ZERO, NEIGHBOURHOOD_SIZE, N_CITIES, TRAV
                                 city.pos[1] * ZOOM_LEVEL + person.pos[1] * ZOOM_LEVEL + offset_y)
                     pygame.draw.circle(screen, person.color, scaled_pos, int(DOT_RADIUS * ZOOM_LEVEL))
 
-
+    
     def update_people(t):
         travel()
         for city in cities:
@@ -260,8 +270,6 @@ def run(AVG_POP, AVG_SIZE, MAX_PATIENTS_ZERO, NEIGHBOURHOOD_SIZE, N_CITIES, TRAV
         for city in cities:
             city.calc_people()
         
-
-
 
     def travel():
         for city in cities:
@@ -413,6 +421,7 @@ def run(AVG_POP, AVG_SIZE, MAX_PATIENTS_ZERO, NEIGHBOURHOOD_SIZE, N_CITIES, TRAV
 
             
 
+    
     save_stats()
     plt.savefig("wykres.png")
     pygame.quit()
