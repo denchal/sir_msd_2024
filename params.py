@@ -4,6 +4,11 @@ from tkinter import ttk
 from tkinter import filedialog
 import threading
 
+ADVANCED = False
+POPULATIONS = []
+PATIENTS_ZERO = []
+SIZES =[]
+
 def load_params():
     path = filedialog.askopenfilename(filetypes=[("SIR files", ".SIR")])
     if not path:
@@ -12,7 +17,6 @@ def load_params():
     with open(path, 'r') as file:
             lines = file.readlines()
 
-    
     reset()
 
     avg_pop.insert(0, lines[0].strip())
@@ -34,6 +38,11 @@ def load_params():
     days.insert(0, lines[8].strip())
 
 def reset():
+    global ADVANCED, POPULATIONS, PATIENTS_ZERO, SIZES
+    avg_pop.config(state='enabled')
+    avg_size.config(state='enabled')
+    max_patients_zero.config(state='enabled')
+    
     avg_pop.delete(0, tk.END)
         
     avg_size.delete(0, tk.END)
@@ -52,24 +61,91 @@ def reset():
 
     days.delete(0, tk.END)
 
+    ADVANCED = False
+    POPULATIONS = []
+    PATIENTS_ZERO = []
+    SIZES = []
+
 def start_simulation():
-    parameters = [
-        int(avg_pop.get()),
-        int(avg_size.get()),
-        int(max_patients_zero.get()),
-        int(neighbourhood_size.get()),
-        int(n_cities.get()),
-        float(travel_rate.get()),
-        float(infection_rate.get()),
-        int(infection_time.get()),
-        int(days.get())
-    ]
+    global ADVANCED, POPULATIONS, PATIENTS_ZERO, SIZES
+    if not ADVANCED:
+         parameters = [
+            int(avg_pop.get()),
+            int(avg_size.get()),
+            int(max_patients_zero.get()),
+            int(neighbourhood_size.get()),
+            int(n_cities.get()),
+            float(travel_rate.get()),
+            float(infection_rate.get()),
+            int(infection_time.get()),
+            int(days.get())
+        ]
+    else:
+         parameters = [
+            POPULATIONS,
+            SIZES,
+            PATIENTS_ZERO,
+            int(neighbourhood_size.get()),
+            int(n_cities.get()),
+            float(travel_rate.get()),
+            float(infection_rate.get()),
+            int(infection_time.get()),
+            int(days.get())
+         ]
 
     def run_():
-         run(parameters)
+         run(parameters, ADVANCED)
 
     threading.Thread(target=run_).start()
+
+def open_advanced_options():
+    global ADVANCED, POPULATIONS, PATIENTS_ZERO, SIZES
+    n = int(n_cities.get())
+    advanced_window = tk.Toplevel(root)
+    advanced_window.title("Zaawansowane opcje")
+
+    ttk.Label(advanced_window, text="Miasto").grid(row=0, column=0)
+    ttk.Label(advanced_window, text="Populacja").grid(row=0, column=1)
+    ttk.Label(advanced_window, text="Pacjenci zero").grid(row=0, column=2)
+    ttk.Label(advanced_window, text="Rozmiar").grid(row=0, column=3)
+
+    entries_pop = []
+    entries_patients = []
+    entries_size = []
+    
+    for i in range(n):
+        ttk.Label(advanced_window, text=f"Miasto {i+1}").grid(row=i+1, column=0)
+        pop_entry = ttk.Entry(advanced_window)
+        pop_entry.grid(row=i+1, column=1)
+        POPULATIONS.append(pop_entry)
+        entries_pop.append(pop_entry)
+
+        patient_entry = ttk.Entry(advanced_window)
+        patient_entry.grid(row=i+1, column=2)
+        PATIENTS_ZERO.append(patient_entry)
+        entries_patients.append(patient_entry)
+
+        size_entry = ttk.Entry(advanced_window)
+        size_entry.grid(row=i+1, column=3)
+        SIZES.append(size_entry)
+        entries_size.append(size_entry)
+
+    def advanced():
+        global ADVANCED, POPULATIONS, PATIENTS_ZERO, SIZES
+        ADVANCED = True
+        avg_pop.config(state='disabled')
+        avg_size.config(state='disabled')
+        max_patients_zero.config(state='disabled')
         
+        POPULATIONS = [int(pop.get()) for pop in entries_pop]
+        PATIENTS_ZERO = [int(patient.get()) for patient in entries_patients]
+        SIZES = [int(size.get()) for size in entries_size]
+        
+        advanced_window.destroy()
+    
+    save_button = ttk.Button(advanced_window, text="Zapisz", command=advanced)
+    save_button.grid(row=n+1, column=1, columnspan=2)
+
 
 root = tk.Tk()
 root.title("SIR")
@@ -112,10 +188,13 @@ start_button = ttk.Button(root, text="Start", command=start_simulation)
 start_button.grid(row=len(parameters), column=1, padx=10, pady=10, sticky=tk.W)
 
 exit_button = ttk.Button(root, text="Exit", command=root.destroy)
-exit_button.grid(row=len(parameters), column=3, padx=10, pady=10, sticky=tk.E)
+exit_button.grid(row=len(parameters), column=4, padx=10, pady=10, sticky=tk.E)
 
 reset_button = ttk.Button(root, text="Reset", command=reset)
 reset_button.grid(row=len(parameters), column=2, padx=10, pady=10, sticky=tk.E)
+
+advanced_button = ttk.Button(root, text="Advanced", command=open_advanced_options)
+advanced_button.grid(row=len(parameters), column=3, padx=10, pady=10, sticky=tk.E)
 
 root.mainloop()
 

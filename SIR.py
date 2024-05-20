@@ -4,9 +4,10 @@ import matplotlib.pyplot as plt
 import io
 from math import sqrt, exp
 import csv
-from multiprocessing import Process
+from statistics import mean
 
-def run(parameters):
+
+def run(parameters, advanced):
     pygame.init()
 
     SCREEN_WIDTH = 1800
@@ -14,24 +15,37 @@ def run(parameters):
     BACKGROUND_COLOR = (0, 0, 0)
     DOT_RADIUS = 1
     ZOOM_RATIO = 1.2
-
-    AVG_POP = parameters[0]
-    AVG_SIZE = parameters[1]
-    MAX_PATIENTS_ZERO = parameters[2]
-    NEIGHBOURHOOD_SIZE = parameters[3]
-    N_CITIES = parameters[4]
-    TRAVEL_RATE = parameters[5]
-    INFECTION_RATE = parameters[6]
-    INFECTION_TIME = parameters[7]
-    DAYS = parameters[8]
-
-
+    
+    if advanced == False:
+        AVG_POP = parameters[0]
+        AVG_SIZE = parameters[1]
+        MAX_PATIENTS_ZERO = parameters[2]
+        NEIGHBOURHOOD_SIZE = parameters[3]
+        N_CITIES = parameters[4]
+        TRAVEL_RATE = parameters[5]
+        INFECTION_RATE = parameters[6]
+        INFECTION_TIME = parameters[7]
+        DAYS = parameters[8]
+        S0 = [random.randint(AVG_POP - AVG_POP//2, AVG_POP + AVG_POP//2) for _ in range(N_CITIES)]
+        I0 = [random.randint(0, MAX_PATIENTS_ZERO) for _ in range(N_CITIES)]
+        SQUARE_SIZES = [random.randint(AVG_SIZE - AVG_SIZE//2, AVG_SIZE + AVG_SIZE//2) for _ in range(N_CITIES)]
+    
+    else:
+        S0 = parameters[0]
+        I0 = parameters[2]
+        SQUARE_SIZES = parameters[1]
+        NEIGHBOURHOOD_SIZE = parameters[3]
+        N_CITIES = parameters[4]
+        TRAVEL_RATE = parameters[5]
+        INFECTION_RATE = parameters[6]
+        INFECTION_TIME = parameters[7]
+        DAYS = parameters[8]
+        AVG_SIZE = mean(SQUARE_SIZES)
     # ________________________________________________________________________
 
-    S0 = [random.randint(AVG_POP - AVG_POP//2, AVG_POP + AVG_POP//2) for _ in range(N_CITIES)]
-    I0 = [random.randint(0, MAX_PATIENTS_ZERO) for _ in range(N_CITIES)]
+    
     TOTAL_POP = sum(S0) + sum(I0)
-    SQUARE_SIZES = [random.randint(AVG_SIZE - AVG_SIZE//2, AVG_SIZE + AVG_SIZE//2) for _ in range(N_CITIES)]
+    
 
     # ________________________________________________________________________
 
@@ -392,7 +406,7 @@ def run(parameters):
         else:
             city_list = draw_city_list(screen)
 
-        
+        print(DIRECTIONS)
         axes.clear()
         fig.patch.set_facecolor('black')
         axes.set_facecolor('black')
