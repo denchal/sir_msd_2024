@@ -30,6 +30,7 @@ def run(parameters, advanced):
         I0 = [random.randint(0, MAX_PATIENTS_ZERO) for _ in range(N_CITIES)]
         SQUARE_SIZES = [random.randint(AVG_SIZE - AVG_SIZE//2, AVG_SIZE + AVG_SIZE//2) for _ in range(N_CITIES)]
         QUARANTINE = parameters[9]
+        VACCINE = parameters[10]
     
     else:
         S0 = parameters[0]
@@ -43,6 +44,7 @@ def run(parameters, advanced):
         DAYS = parameters[8]
         AVG_SIZE = mean(SQUARE_SIZES)
         QUARANTINE = parameters[9]
+        VACCINE = parameters[10]
     # ________________________________________________________________________
 
     
@@ -114,7 +116,8 @@ def run(parameters, advanced):
         (0, 255, 0),  # S
         (255, 0, 0),  # I
         (0, 0, 255),   # R
-        (255, 0, 255) # Q
+        (255, 0, 255), # Q
+        (255, 128, 0) # V
     ]
 
     DIRECTIONS = [
@@ -172,6 +175,13 @@ def run(parameters, advanced):
                             other.status = "I"
                             other.infected_time = 0
                             other.color = COLORS[1]
+                    elif other.status == "V":
+                        distance = sqrt((self.pos[0] - other.pos[0]) ** 2 + (self.pos[1] - other.pos[1]) ** 2)
+                        infection_prob = exp(-3/2 * distance)
+                        if random.random() <= infection_prob * INFECTION_RATE // 3:
+                            other.status = "I"
+                            other.infected_time = 0
+                            other.color = COLORS[1]
 
         def remove_check(self):
             if self.status == "I" and self.infected_time > INFECTION_TIME:
@@ -199,6 +209,11 @@ def run(parameters, advanced):
             if self.status == "Q" and self.infected_time > INFECTION_TIME:
                 self.status = "R"
                 self.color = COLORS[2]
+        
+        def vaccine(self):
+            if self.status == "S" and random.random() < 0.2:
+                self.status = "V"
+                self.color = COLORS[4]
 
 
     class City:
@@ -233,7 +248,7 @@ def run(parameters, advanced):
                 self.map[person_pos].append(Person(person_pos, self.id))
 
         def update_counts(self):
-            self.s_count = len([p for p in self.people if p.status == 'S'])
+            self.s_count = len([p for p in self.people if p.status == 'S' or p.status == "V"])
             self.i_count = len([p for p in self.people if p.status == 'I' or p.status == "Q"])
             self.r_count = len([p for p in self.people if p.status == 'R'])
 
@@ -286,10 +301,12 @@ def run(parameters, advanced):
                 person.infect()
                 person.remove_check()
                 person.move_inside_new()
-                if QUARANTINE and t > 30:
+                if QUARANTINE and t > 300:
                     person.quarantine()
                     person.quarantine_check()
-                if person.status == "S":
+                if VACCINE and t > 500:
+                    person.vaccine()
+                if person.status == "S" or person.status == "V": 
                     St[t] += 1
                 elif person.status == "I" or person.status == "Q":
                     It[t] += 1

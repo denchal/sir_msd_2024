@@ -79,7 +79,8 @@ def start_simulation():
             float(infection_rate.get()),
             int(infection_time.get()),
             int(days.get()),
-            bool(quarantine.get())
+            bool(quarantine.get()),
+            bool(vaccine.get())
         ]
     else:
          parameters = [
@@ -92,7 +93,8 @@ def start_simulation():
             float(infection_rate.get()),
             int(infection_time.get()),
             int(days.get()),
-            bool(quarantine.get())
+            bool(quarantine.get()),
+            bool(vaccine.get())
          ]
 
     def run_():
@@ -186,6 +188,10 @@ days = entries["Simulation Days"]
 quarantine = tk.BooleanVar()
 quarantine_checkbox = ttk.Checkbutton(root, text="Kwarantanna", variable=quarantine)
 quarantine_checkbox.grid(row=len(parameters) + 1, column=0, columnspan=2, padx=10, pady=5, sticky=tk.W)
+
+vaccine = tk.BooleanVar()
+vaccine_checkbox = ttk.Checkbutton(root, text="Szczepionki", variable=vaccine)
+vaccine_checkbox.grid(row=len(parameters) + 1, column=1, columnspan=2, padx=10, pady=5, sticky=tk.W)
 
 load_button = ttk.Button(root, text="Load from file", command=load_params)
 load_button.grid(row=len(parameters), column=0, padx=10, pady=10, sticky=tk.E)
