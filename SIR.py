@@ -113,11 +113,11 @@ def run(parameters, advanced):
         return adjacency_list
 
     COLORS = [
-        (0, 255, 0),  # S
-        (255, 0, 0),  # I
+        (0, 255, 0),   # S
+        (255, 0, 0),   # I
         (0, 0, 255),   # R
         (255, 0, 255), # Q
-        (255, 128, 0) # V
+        (255, 128, 0)  # V
     ]
 
     DIRECTIONS = [
@@ -201,7 +201,7 @@ def run(parameters, advanced):
             return neighbors
         
         def quarantine(self):
-            if self.status == "I" and random.random() < 0.1:
+            if random.random() < 0.5 and self.infected_time == 0:
                 self.status = "Q"
                 self.color = COLORS[3]
         
@@ -211,7 +211,7 @@ def run(parameters, advanced):
                 self.color = COLORS[2]
         
         def vaccine(self):
-            if self.status == "S" and random.random() < 0.2:
+            if self.status == "S" and random.random() < 0.05:
                 self.status = "V"
                 self.color = COLORS[4]
 
@@ -301,10 +301,10 @@ def run(parameters, advanced):
                 person.infect()
                 person.remove_check()
                 person.move_inside_new()
-                if QUARANTINE and t > 300:
+                if QUARANTINE and t > 30:
                     person.quarantine()
                     person.quarantine_check()
-                if VACCINE and t > 500:
+                if VACCINE and t > 50:
                     person.vaccine()
                 if person.status == "S" or person.status == "V": 
                     St[t] += 1
