@@ -78,7 +78,8 @@ def start_simulation():
             float(travel_rate.get()),
             float(infection_rate.get()),
             int(infection_time.get()),
-            int(days.get())
+            int(days.get()),
+            bool(quarantine.get())
         ]
     else:
          parameters = [
@@ -90,7 +91,8 @@ def start_simulation():
             float(travel_rate.get()),
             float(infection_rate.get()),
             int(infection_time.get()),
-            int(days.get())
+            int(days.get()),
+            bool(quarantine.get())
          ]
 
     def run_():
@@ -143,7 +145,7 @@ def open_advanced_options():
         
         advanced_window.destroy()
     
-    save_button = ttk.Button(advanced_window, text="Zapisz", command=advanced)
+    save_button = ttk.Button(advanced_window, text="Save", command=advanced)
     save_button.grid(row=n+1, column=1, columnspan=2)
 
 
@@ -181,11 +183,15 @@ infection_rate = entries["Infection Rate"]
 infection_time = entries["Infection Time"]
 days = entries["Simulation Days"]
 
+quarantine = tk.BooleanVar()
+quarantine_checkbox = ttk.Checkbutton(root, text="Kwarantanna", variable=quarantine)
+quarantine_checkbox.grid(row=len(parameters) + 1, column=0, columnspan=2, padx=10, pady=5, sticky=tk.W)
+
 load_button = ttk.Button(root, text="Load from file", command=load_params)
-load_button.grid(row=len(parameters), column=0, padx=10, pady=10, sticky=tk.W)
+load_button.grid(row=len(parameters), column=0, padx=10, pady=10, sticky=tk.E)
 
 start_button = ttk.Button(root, text="Start", command=start_simulation)
-start_button.grid(row=len(parameters), column=1, padx=10, pady=10, sticky=tk.W)
+start_button.grid(row=len(parameters), column=1, padx=10, pady=10, sticky=tk.E)
 
 exit_button = ttk.Button(root, text="Exit", command=root.destroy)
 exit_button.grid(row=len(parameters), column=4, padx=10, pady=10, sticky=tk.E)

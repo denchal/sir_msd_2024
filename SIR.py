@@ -29,6 +29,7 @@ def run(parameters, advanced):
         S0 = [random.randint(AVG_POP - AVG_POP//2, AVG_POP + AVG_POP//2) for _ in range(N_CITIES)]
         I0 = [random.randint(0, MAX_PATIENTS_ZERO) for _ in range(N_CITIES)]
         SQUARE_SIZES = [random.randint(AVG_SIZE - AVG_SIZE//2, AVG_SIZE + AVG_SIZE//2) for _ in range(N_CITIES)]
+        QUARANTINE = parameters[9]
     
     else:
         S0 = parameters[0]
@@ -41,6 +42,7 @@ def run(parameters, advanced):
         INFECTION_TIME = parameters[7]
         DAYS = parameters[8]
         AVG_SIZE = mean(SQUARE_SIZES)
+        QUARANTINE = parameters[9]
     # ________________________________________________________________________
 
     
@@ -111,7 +113,8 @@ def run(parameters, advanced):
     COLORS = [
         (0, 255, 0),  # S
         (255, 0, 0),  # I
-        (0, 0, 255)   # R
+        (0, 0, 255),   # R
+        (255, 0, 255) # Q
     ]
 
     DIRECTIONS = [
@@ -141,15 +144,16 @@ def run(parameters, advanced):
             self.has_travelled = False
 
         def move_inside_new(self):
-            distance = random.randint(10, 25)
-            direction = random.choice([DIRECTIONS[i] for i in range(8)
-                                    if (self.pos[0] + DIRECTIONS[i][0] * distance < SQUARE_SIZES[self.current_square] and self.pos[1] + DIRECTIONS[i][1] * distance < SQUARE_SIZES[self.current_square]
-                                        and self.pos[0] + DIRECTIONS[i][0] * distance > 0 and self.pos[1] + DIRECTIONS[i][1] * distance > 0)])
-            new_x = self.pos[0] + direction[0] * distance
-            new_y = self.pos[1] + direction[1] * distance
-            cities[self.current_square].map[self.pos].remove(self)
-            self.pos = (new_x, new_y)
-            cities[self.current_square].map[self.pos].append(self)
+            if self.status != "Q":    
+                distance = random.randint(10, 25)
+                direction = random.choice([DIRECTIONS[i] for i in range(8)
+                                        if (self.pos[0] + DIRECTIONS[i][0] * distance < SQUARE_SIZES[self.current_square] and self.pos[1] + DIRECTIONS[i][1] * distance < SQUARE_SIZES[self.current_square]
+                                            and self.pos[0] + DIRECTIONS[i][0] * distance > 0 and self.pos[1] + DIRECTIONS[i][1] * distance > 0)])
+                new_x = self.pos[0] + direction[0] * distance
+                new_y = self.pos[1] + direction[1] * distance
+                cities[self.current_square].map[self.pos].remove(self)
+                self.pos = (new_x, new_y)
+                cities[self.current_square].map[self.pos].append(self)
 
         def travel(self, destination):
             cities[self.current_square].map[self.pos].remove(self)
@@ -185,6 +189,16 @@ def run(parameters, advanced):
                     neighbors.extend(cities[self.current_square].map[cell])
 
             return neighbors
+        
+        def quarantine(self):
+            if self.status == "I" and random.random() < 0.1:
+                self.status = "Q"
+                self.color = COLORS[3]
+        
+        def quarantine_check(self):
+            if self.status == "Q" and self.infected_time > INFECTION_TIME:
+                self.status = "R"
+                self.color = COLORS[2]
 
 
     class City:
@@ -220,7 +234,7 @@ def run(parameters, advanced):
 
         def update_counts(self):
             self.s_count = len([p for p in self.people if p.status == 'S'])
-            self.i_count = len([p for p in self.people if p.status == 'I'])
+            self.i_count = len([p for p in self.people if p.status == 'I' or p.status == "Q"])
             self.r_count = len([p for p in self.people if p.status == 'R'])
 
 
@@ -272,9 +286,12 @@ def run(parameters, advanced):
                 person.infect()
                 person.remove_check()
                 person.move_inside_new()
+                if QUARANTINE and t > 30:
+                    person.quarantine()
+                    person.quarantine_check()
                 if person.status == "S":
                     St[t] += 1
-                elif person.status == "I":
+                elif person.status == "I" or person.status == "Q":
                     It[t] += 1
                     person.infected_time += 1
                 else:
@@ -292,6 +309,8 @@ def run(parameters, advanced):
 
                 for _ in range(people_to_move):
                     person = random.choice(city.people)
+                    while person.status == "Q":
+                        person = random.choice(city.people)
                     while person.has_travelled:
                         person = random.choice(city.people)
                     destination = cities[random.choice(CONNECTIONS_GRAPH[city.id])]
@@ -327,6 +346,7 @@ def run(parameters, advanced):
 
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("SIR Model")
+
     cities = []
     create_cities()
     for i, I0i in enumerate(I0):
@@ -406,7 +426,6 @@ def run(parameters, advanced):
         else:
             city_list = draw_city_list(screen)
 
-        print(DIRECTIONS)
         axes.clear()
         fig.patch.set_facecolor('black')
         axes.set_facecolor('black')
@@ -433,9 +452,85 @@ def run(parameters, advanced):
             draw_text(screen, f"S: {(100.0 * St[day-1] / TOTAL_POP):.2f}%, I: {(100.0 * It[day-1] / TOTAL_POP):.2f}%, R: {(100.0 * Rt[day-1] / TOTAL_POP):.2f}%", 1100, 100, 90)
         pygame.display.flip()
 
-            
+    running = True
+
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    running = False
+                elif event.key == pygame.K_v:
+                    show_cities = not show_cities
+                    offset_x = 0
+                    offset_y = 0
+                elif event.key == pygame.K_s:
+                    show_stats = not show_stats
+            if show_cities:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        dragging = True
+                        last_mouse_pos = pygame.mouse.get_pos()
+                    elif event.button == 4:
+                        mouse_x, mouse_y = pygame.mouse.get_pos()
+                        ZOOM_LEVEL *= ZOOM_RATIO
+                        offset_x = (offset_x - mouse_x) * ZOOM_RATIO + mouse_x
+                        offset_y = (offset_y - mouse_y) * ZOOM_RATIO + mouse_y
+                    elif event.button == 5:
+                        mouse_x, mouse_y = pygame.mouse.get_pos()
+                        ZOOM_LEVEL /= ZOOM_RATIO
+                        offset_x = (offset_x - mouse_x) / ZOOM_RATIO + mouse_x
+                        offset_y = (offset_y - mouse_y) / ZOOM_RATIO + mouse_y
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    if event.button == 1:
+                        dragging = False
+                elif event.type == pygame.MOUSEMOTION:
+                    if dragging:
+                        mouse_pos = pygame.mouse.get_pos()
+                        offset_x += mouse_pos[0] - last_mouse_pos[0]
+                        offset_y += mouse_pos[1] - last_mouse_pos[1]
+                        last_mouse_pos = mouse_pos
+            else:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 4:
+                        offset_y += 100
+                    elif event.button == 5:
+                        offset_y -= 100
+
+        if show_cities:
+            draw_cities(screen, ZOOM_LEVEL, offset_x, offset_y)
+            draw_people(screen, ZOOM_LEVEL, offset_x, offset_y)
+        else:
+            city_list = draw_city_list(screen)
+
+        axes.clear()
+        fig.patch.set_facecolor('black')
+        axes.set_facecolor('black')
+        axes.set_ylim(bottom=0, top=sum(S0)+1)
+        axes.plot([i for i in range(day)], St[:day], c='g', label='Susceptible')
+        axes.plot([i for i in range(day)], It[:day], c='r', label='Infected')
+        axes.plot([i for i in range(day)], Rt[:day], c='b', label='Recovered')
+        axes.tick_params(axis='x', colors='white')
+        axes.tick_params(axis='y', colors='white')
+        axes.spines['bottom'].set_color('white')
+        axes.spines['top'].set_color('white')
+        axes.spines['left'].set_color('white')
+        axes.spines['right'].set_color('white')
+        axes.yaxis.label.set_color('white')
+        axes.xaxis.label.set_color('white')
+        axes.legend()
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        buf.seek(0)
+        image = pygame.image.load(buf)
+        screen.blit(image, (1000, 250))
+
+        if show_stats:
+            draw_text(screen, f"S: {(100.0 * St[day-1] / TOTAL_POP):.2f}%, I: {(100.0 * It[day-1] / TOTAL_POP):.2f}%, R: {(100.0 * Rt[day-1] / TOTAL_POP):.2f}%", 1100, 100, 90)
+        pygame.display.flip()
 
     
     save_stats()
     plt.savefig("wykres.png")
-    pygame.quit()
+    
